@@ -3,68 +3,137 @@ import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { Blog, ResponseDto } from './types';
 import { buildResponse } from '../../utils';
+import { BlogQueries } from './blogs.queries';
 
 @Injectable()
 export class BlogsService {
-  private blogs: Blog[] = [];
+  constructor(private readonly blogQueries: BlogQueries) {}
 
-  create(createBlogDto: CreateBlogDto): ResponseDto<Blog> {
-    const blog: Blog = {
-      id: Math.floor(Math.random() * 1000),
-      title: createBlogDto.title,
-      content: createBlogDto.content,
-      createdAt: new Date(),
-    };
-    this.blogs.push(blog);
+  // Create blog
+  async create(createBlogDto: CreateBlogDto): Promise<ResponseDto<Blog | null>> {
+    try {
+      const blog: Blog = await this.blogQueries.createBlog(createBlogDto);
 
-    return buildResponse({
-      code: 201,
-      message: 'Blog created successfully (dummy)',
-      data: blog,
-    });
+      return buildResponse({
+        code: 201,
+        message: 'Blog created successfully',
+        data: blog,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      return buildResponse({
+        code: 500,
+        message: 'Failed to create blog',
+        data: null,
+        error: errorMessage,
+      });
+    }
   }
 
-  findAll(): ResponseDto<Blog[]> {
-    return buildResponse({
-      code: 200,
-      message: 'All blogs fetched successfully (dummy)',
-      data: this.blogs,
-    });
+  // Find all blogs
+  async findAll(): Promise<ResponseDto<Blog[] | null>> {
+    try {
+      const blogs = await this.blogQueries.findAllBlog();
+      return buildResponse({
+        code: 200,
+        message: 'All blogs fetched successfully',
+        data: blogs,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      return buildResponse({
+        code: 500,
+        message: 'Failed to fetch blogs',
+        data: null,
+        error: errorMessage,
+      });
+    }
   }
 
-  findOne(id: number): ResponseDto<Blog> {
-    const blog = this.blogs.find((b) => b.id === id) || null;
+  // Find one blog by ID
+  async findOne(id: number): Promise<ResponseDto<Blog | null>> {
+    try {
+      const blog = await this.blogQueries.findBlogById(id);
 
-    return buildResponse({
-      code: blog ? 200 : 404,
-      message: blog ? 'Blog fetched successfully (dummy)' : 'Blog not found',
-      data: blog,
-    });
+      if (!blog) {
+        return buildResponse({
+          code: 404,
+          message: 'Blog not found',
+          data: null,
+        });
+      }
+
+      return buildResponse({
+        code: 200,
+        message: 'Blog fetched successfully',
+        data: blog,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      return buildResponse({
+        code: 500,
+        message: 'Failed to fetch blog',
+        data: null,
+        error: errorMessage,
+      });
+    }
   }
 
-  update(id: number, updateBlogDto: UpdateBlogDto): ResponseDto<Blog> {
-    const index = this.blogs.findIndex((b) => b.id === id);
-    if (index === -1) return { code: 404, message: 'Blog not found', data: null };
+  // Update blog by ID
+  async update(id: number, updateBlogDto: UpdateBlogDto): Promise<ResponseDto<Blog | null>> {
+    try {
+      const updatedBlog = await this.blogQueries.updateBlogById(id, updateBlogDto);
 
-    const updatedBlog = { ...this.blogs[index], ...updateBlogDto };
-    this.blogs[index] = updatedBlog;
+      if (!updatedBlog) {
+        return buildResponse({
+          code: 404,
+          message: 'Blog not found',
+          data: null,
+        });
+      }
 
-    return buildResponse({
-      code: 200,
-      message: 'Blog updated successfully (dummy)',
-      data: updatedBlog,
-    });
+      return buildResponse({
+        code: 200,
+        message: 'Blog updated successfully',
+        data: updatedBlog,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      return buildResponse({
+        code: 404,
+        message: 'Blog not found',
+        data: null,
+        error: errorMessage,
+      });
+    }
   }
-  remove(id: number): ResponseDto<Blog> {
-    const index = this.blogs.findIndex((b) => b.id === id);
-    if (index === -1) return { code: 404, message: 'Blog not found', data: null };
 
-    const removedBlog = this.blogs.splice(index, 1)[0];
+  // Delete blog by ID
+  async remove(id: number): Promise<ResponseDto<Blog | null>> {
+    try {
+      const removedBlog = await this.blogQueries.deleteBlogById(id);
 
-    return buildResponse({
-      code: 200,
-      message: 'Blog removed successfully (dummy)',
-      data: removedBlog,
-    });
+      if (!removedBlog) {
+        return buildResponse({
+          code: 404,
+          message: 'Blog not found',
+          data: null,
+        });
+      }
+
+      return buildResponse({
+        code: 200,
+        message: 'Blog removed successfully',
+        data: removedBlog,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      return buildResponse({
+        code: 404,
+        message: 'Blog not found',
+        data: null,
+        error: errorMessage,
+      });
+    }
   }
 }
